@@ -1,2 +1,0 @@
-<style></style>
-<template></template>
