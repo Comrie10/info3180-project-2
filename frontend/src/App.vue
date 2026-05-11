@@ -7,7 +7,7 @@ import AppFooter from "./components/AppFooter.vue"
 <template>
   <div class="app-layout">
 
-    <AppHeader />
+   <AppHeader /> 
 
     <main class="app-main">
       <RouterView />
@@ -51,6 +51,11 @@ import AppFooter from "./components/AppFooter.vue"
   color: var(--text);
 
   transition: 0.3s ease;
+}
+
+.app-layout > *:first-child {
+  margin-top: 0;
+  padding-top: 0;
 }
 
 /* MAIN CONTENT */

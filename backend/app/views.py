@@ -1,7 +1,11 @@
 from flask import Blueprint, jsonify, request, session
 from app import db, bcrypt
-from app.models import User, Profile, Interest
-from flask import request
+from app.models import User, Profile, Interest, Message
+from haversine import haversine
+from app.forms import Register, Login, Profile
+from flask_wtf.csrf import generate_csrf
+from werkzeug.security import check_password_hash, generate_password_hash
+from flask_login import login_user, logout_user, current_user, login_required, logout_user
 
 
 bp = Blueprint("bp", __name__)
@@ -106,6 +110,7 @@ def me():
 # LOGOUT
 # --------------------
 @bp.route("/auth/logout", methods=["POST"])
+@login_required
 def logout():
     session.clear()
     return jsonify({"message": "logged out"})
@@ -115,6 +120,7 @@ def logout():
 # PROFILES (REAL DATA)
 # --------------------
 @bp.route("/profiles", methods=["GET"])
+@login_required
 def profiles():
     profiles = Profile.query.all()
 
@@ -165,6 +171,7 @@ def profiles():
     return jsonify(result)
 
 @bp.route("/profile/update", methods=["PUT"])
+@login_required
 def update_profile():
     user_id = session.get("user_id")
 
@@ -197,13 +204,58 @@ def update_profile():
 # MATCHES (placeholder for now but safe)
 # --------------------
 @bp.route("/matches", methods=["GET"])
+@login_required
 def matches():
-    return jsonify({"message": "matches route"})
+    user_id = session.get("user_id")
+    user_profile = Profile.query.filter_by(user_id=user_id).first()
+    user_coordinates = (user_profile.latitude, user_profile.longitude)
+    max_distance = user_profile.max_distance
+
+    matches = []
+    for m in Profile.query.all():
+        if m.user_id == user_id:
+            continue  
+
+        other_coordinates = (m.latitude, m.longitude)
+        if None in user_coordinates or None in other_coordinates:
+            continue
+
+        distance = haversine(user_coordinates, other_coordinates)
+
+        if distance <= max_distance:
+            matches.append({
+                "id": m.id,
+                "first_name": m.first_name,
+                "last_name": m.last_name,
+                "age": m.age,})
+    return jsonify(matches)
 
 
 # --------------------
 # MESSAGES
 # --------------------
 @bp.route("/messages", methods=["GET"])
+@login_required
 def messages():
-    return jsonify({"message": "messages route"})
+    user_id = session.get("user_id")
+    message = Message.query.filter(
+        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+    ).order_by(Message.timestamp.desc()).all()
+    return jsonify([m.to_dict() for m in message])
+
+@bp.route("/messages/send", methods=["POST"])
+@login_required
+def send_message():
+    user_id = session.get("user_id")
+    data = request.json
+
+    new_message = Message(
+        sender_id=user_id,
+        receiver_id=data["receiver_id"],
+        content=data["content"]
+    )
+
+    db.session.add(new_message)
+    db.session.commit()
+
+    return jsonify({"message": "Message sent successfully"}, 201)

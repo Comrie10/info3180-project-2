@@ -100,10 +100,10 @@ const messages = ref([
           <div class="chat-header">
             <div class="user">
               <img src="https://i.pravatar.cc/100?img=5" />
-              <div>
+              <!---<div>
                 <h4>Sarah</h4>
                 <span>Online</span>
-              </div>
+              </div>-->
             </div>
 
             <div class="menu">⋮</div>
@@ -131,7 +131,7 @@ const messages = ref([
 
             <button class="emoji">😊</button>
 
-            <button class="send">➤</button>
+            <button class="send" @click="sendMessage(n_msg, receiverId)">➤</button>
 
           </div>
 
